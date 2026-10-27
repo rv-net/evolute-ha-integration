@@ -10,9 +10,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, SENSOR_TYPES
+from .const import SENSOR_TYPES, DOMAIN, V2_UNSUPPORTED_SENSORS
 from .coordinator import EvoluteDataUpdateCoordinator
-from .entity import build_device_info
+from .entity import build_device_info, car_supports, remove_stale_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,7 +27,10 @@ async def async_setup_entry(
 
     entities = []
     for car in coordinator.cars:
+        remove_stale_entities(hass, "sensor", car, V2_UNSUPPORTED_SENSORS)
         for sensor_key, (name, unit, device_class, icon, state_key, state_class) in SENSOR_TYPES.items():
+            if not car_supports(car, sensor_key, V2_UNSUPPORTED_SENSORS):
+                continue
             entities.append(
                 EvoluteSensor(
                     coordinator, car, sensor_key, name, unit, device_class, icon, state_key, state_class

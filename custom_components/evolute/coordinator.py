@@ -72,7 +72,11 @@ class EvoluteDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any
             if info is not None:
                 # Details are merged underneath so a stale slow poll can never mask
                 # fresh telemetry with the same key.
-                data[car_id] = {**self._details.get(car_id, {}), **info}
+                data[car_id] = {
+                    **car.get("static", {}),
+                    **self._details.get(car_id, {}),
+                    **info,
+                }
 
         if not data and self.cars:
             if self.client.auth_failed:

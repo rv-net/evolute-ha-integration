@@ -10,9 +10,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import BINARY_SENSOR_TYPES, DOMAIN
+from .const import BINARY_SENSOR_TYPES, DOMAIN, V2_UNSUPPORTED_BINARY_SENSORS
 from .coordinator import EvoluteDataUpdateCoordinator
-from .entity import build_device_info
+from .entity import build_device_info, car_supports, remove_stale_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,7 +27,10 @@ async def async_setup_entry(
 
     entities = []
     for car in coordinator.cars:
+        remove_stale_entities(hass, "binary_sensor", car, V2_UNSUPPORTED_BINARY_SENSORS)
         for sensor_key, (name, device_class, state_key) in BINARY_SENSOR_TYPES.items():
+            if not car_supports(car, sensor_key, V2_UNSUPPORTED_BINARY_SENSORS):
+                continue
             entities.append(
                 EvoluteBinarySensor(coordinator, car, sensor_key, name, device_class, state_key)
             )

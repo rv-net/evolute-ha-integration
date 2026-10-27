@@ -118,7 +118,7 @@ SENSOR_TYPES = {
     "telemetry_time": ("Telemetry Time", None, SensorDeviceClass.TIMESTAMP, "mdi:clock-check-outline", "telemetry_time", None),
     "status_text": ("Status", None, None, "mdi:information-outline", "status_text", None),
     "online_state": ("Connection State", None, None, "mdi:transit-connection-variant", "online_state", None),
-    "signal_level": ("GSM Signal", None, None, "mdi:signal-cellular-3", "signal_level", SensorStateClass.MEASUREMENT),
+    "signal_level": ("GSM Signal", "%", None, "mdi:signal-cellular-3", "signal_level", SensorStateClass.MEASUREMENT),
     "position_time": ("Position Time", None, SensorDeviceClass.TIMESTAMP, "mdi:crosshairs-gps", "position_time", None),
     "firmware_version": ("Firmware Version", None, None, "mdi:chip", "firmware_version", None),
     "firmware_expected": ("Firmware Version (Expected)", None, None, "mdi:chip", "firmware_expected", None),
@@ -134,6 +134,9 @@ SENSOR_TYPES = {
     "maintenance_mileage": ("Service Due Odometer", "km", SensorDeviceClass.DISTANCE, "mdi:counter", "maintenance_mileage", None),
     "last_sensor_request": ("Last Sensor Request", None, SensorDeviceClass.TIMESTAMP, "mdi:cloud-download-outline", "last_sensor_request", None),
     "last_command_trigger": ("Last Command Sent", None, SensorDeviceClass.TIMESTAMP, "mdi:remote", "last_command_trigger", None),
+    # Static car profile from /car/v2/{car_id}, read once at setup.
+    "license_plate": ("License Plate", None, None, "mdi:card-text-outline", "license_plate", None),
+    "color": ("Color", None, None, "mdi:palette-outline", "color", None),
 }
 
 # Binary sensor definitions: (name, device_class, state_key)
@@ -170,7 +173,31 @@ BINARY_SENSOR_TYPES = {
     # Sourced from the slow /car/v2/search poll rather than tbox telemetry.
     "update_available": ("Firmware Update Available", BinarySensorDeviceClass.UPDATE, "update_available"),
     "location_enabled": ("Location Reporting", None, "location_enabled"),
+    # Static car profile from /car/v2/{car_id}: model options, not live state.
+    "heater_installed": ("Heater Installed", None, "heater_installed"),
+    "ready_mode_available": ("Ready Mode Available", None, "ready_mode_available"),
 }
+
+# Modem signal quality (CSQ) tops out at 31; 99 means "no signal".
+CSQ_MAX = 31
+
+# Keys carV2 telemetry never reports: no altitude / satellites / HDOP (the app
+# only shows a map pin), no current climate temperature, climate or defrost
+# state, and no trip-preparation timing or error. Cars on carV2 do not get
+# these entities, and leftovers from older versions are removed at setup.
+V2_UNSUPPORTED_SENSORS = (
+    "altitude",
+    "satellites",
+    "hdop",
+    "climate_current_temp",
+    "prep_end_time",
+    "prep_start_time",
+)
+V2_UNSUPPORTED_BINARY_SENSORS = (
+    "climate",
+    "climate_front_defrost",
+    "prep_error",
+)
 
 # Button definitions: (name, command, icon, confirm_key)
 # Commands map 1:1 to POST /car-service/tbox/{car_id}/{command}.

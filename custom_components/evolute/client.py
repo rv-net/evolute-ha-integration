@@ -13,6 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     BASE_URL,
+    CSQ_MAX,
     CAR_SEARCH_URL,
     COMMAND_CANCEL,
     COMMAND_PREPARE,
@@ -192,6 +193,13 @@ def _parse_car_info(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _csq_to_percent(value: Any) -> int | None:
+    """Convert a modem CSQ reading (0-31, 99 = no signal) to the % the app shows."""
+    if not isinstance(value, (int, float)) or value < 0 or value > CSQ_MAX:
+        return None
+    return round(value / CSQ_MAX * 100)
+
+
 def _status_chip(sensors: dict[str, Any], is_online: Any) -> str:
     """Reproduce the status chip the web app renders from the same telemetry.
 
@@ -249,7 +257,16 @@ def _parse_car_info_v2(
     parsed["status_text"] = _status_chip(sensors, raw.get("isOnline"))
     parsed["online_state"] = raw.get("onlineState")
     parsed["position_time"] = _parse_epoch_ms(raw.get("positionAt"))
-    parsed["signal_level"] = sensors.get("signalLevel")
+    parsed["signal_level"] = _csq_to_percent(sensors.get("signalLevel"))
+    # The car reports the live Ready (ignition) state as sensors.ready; the field
+    # is simply absent while the car is off. isIgnitionOn is kept as a fallback
+    # for firmware that still sends it.
+    if "ready" in sensors:
+        parsed["ignition"] = sensors.get("ready") is True
+    elif "isIgnitionOn" in sensors:
+        parsed["ignition"] = bool(sensors.get("isIgnitionOn"))
+    else:
+        parsed["ignition"] = False if raw.get("isCarStateReady") else None
     parsed["charging_gun"] = sensors.get("isChargingGunInserted")
     parsed["is_charging"] = parsed["status_text"] == "Идет зарядка"
     parsed["car_state_ready"] = raw.get("isCarStateReady")
@@ -469,9 +486,11 @@ class EvoluteClient:
             if not car_id:
                 continue
             details = await self._request("GET", f"{BASE_URL}/car-service/car/v2/{car_id}")
-            imei = (details or {}).get("imei")
+            details = details or {}
+            imei = details.get("imei")
             if imei:
                 self._imeis[car_id] = str(imei)
+            options = (details.get("carModel") or model).get("options") or {}
             cars.append(
                 {
                     "car_id": car_id,
@@ -483,6 +502,15 @@ class EvoluteClient:
                     "color": model.get("color"),
                     "image": images.get("side"),
                     "name": row.get("vin") or model.get("name") or car_id,
+                    # carV2 telemetry exists only for a car whose model has a
+                    # modname; the rest stay on the legacy tbox endpoint.
+                    "telemetry_v2": bool(imei and model.get("modname")),
+                    "static": {
+                        "license_plate": details.get("licensePlate") or row.get("licensePlate"),
+                        "color": model.get("color"),
+                        "heater_installed": options.get("heater"),
+                        "ready_mode_available": options.get("readyMode"),
+                    },
                 }
             )
         return cars
