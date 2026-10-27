@@ -50,9 +50,9 @@ cards:
             icon: mdi:map-marker-distance
             vertical: false
           - type: tile
-            entity: sensor.evolute_CAR_ID_HERE_satellites
-            name: GPS
-            icon: mdi:satellite-variant
+            entity: sensor.evolute_CAR_ID_HERE_signal_level
+            name: Связь
+            icon: mdi:signal-cellular-3
             vertical: false
 
       # Центр: схема автомобиля сверху
@@ -180,14 +180,27 @@ cards:
                   --mdc-icon-size: 26px
                   opacity: 1
 
-          # Иконка климата (виден, когда включён)
+          # Иконки прогрева / охлаждения (видны, когда включены)
           - type: conditional
             conditions:
-              - entity: binary_sensor.evolute_CAR_ID_HERE_climate
+              - entity: binary_sensor.evolute_CAR_ID_HERE_heating
                 state: "on"
             elements:
               - type: icon
-                icon: mdi:air-conditioner
+                icon: mdi:radiator
+                style:
+                  top: 90%
+                  left: 50%
+                  color: "#ff8833"
+                  --mdc-icon-size: 24px
+                  opacity: 0.9
+          - type: conditional
+            conditions:
+              - entity: binary_sensor.evolute_CAR_ID_HERE_cooling
+                state: "on"
+            elements:
+              - type: icon
+                icon: mdi:snowflake
                 style:
                   top: 90%
                   left: 50%
@@ -216,9 +229,9 @@ cards:
             icon: mdi:counter
             vertical: false
           - type: tile
-            entity: sensor.evolute_CAR_ID_HERE_speed
-            name: Скорость
-            icon: mdi:speedometer
+            entity: sensor.evolute_CAR_ID_HERE_status_text
+            name: Статус
+            icon: mdi:information-outline
             vertical: false
           - type: tile
             entity: binary_sensor.evolute_CAR_ID_HERE_ignition
@@ -313,10 +326,12 @@ cards:
   - type: entities
     title: Климат
     entities:
-      - entity: binary_sensor.evolute_CAR_ID_HERE_climate
-      - entity: binary_sensor.evolute_CAR_ID_HERE_climate_front_defrost
+      - entity: binary_sensor.evolute_CAR_ID_HERE_heating
+        name: Прогрев
+      - entity: binary_sensor.evolute_CAR_ID_HERE_cooling
+        name: Охлаждение
       - entity: sensor.evolute_CAR_ID_HERE_climate_target_temp
-      - entity: sensor.evolute_CAR_ID_HERE_climate_current_temp
+      - entity: sensor.evolute_CAR_ID_HERE_climate_fan_speed
       - entity: sensor.evolute_CAR_ID_HERE_inboard_temp
 
   - type: entities
@@ -347,16 +362,12 @@ cards:
     title: Подготовка к поездке и связь
     entities:
       - entity: binary_sensor.evolute_CAR_ID_HERE_preparing
-      - entity: sensor.evolute_CAR_ID_HERE_prep_end_time
-        name: Осталось
       - entity: sensor.evolute_CAR_ID_HERE_prep_script_time
         name: Длительность
       - entity: binary_sensor.evolute_CAR_ID_HERE_prep_available
         name: Поддерживается
       - entity: binary_sensor.evolute_CAR_ID_HERE_prep_disabled
         name: Сейчас недоступна
-      - entity: binary_sensor.evolute_CAR_ID_HERE_prep_error
-        name: Ошибка
       - entity: sensor.evolute_CAR_ID_HERE_status_text
         name: Статус
       - entity: sensor.evolute_CAR_ID_HERE_telemetry_time
